@@ -1,0 +1,26 @@
+{
+    "name": "onmoon/dto-mapper",
+    "description": "Class to map any array or class tree into DTO",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dmitry Kuskov",
+            "email": "dk@csgo.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": "^7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "OnMoon\\DtoMapper\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "OnMoon\\DtoMapper\\Tests\\": "tests/"
+        }
+    }
+}

@@ -1,0 +1,13 @@
+version: '3.3'
+services:
+  php-cli:
+    image: php:7.4
+    command:
+      - bash
+      - "-c"
+      - "php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\" && php composer-setup.php --install-dir=bin --filename=composer && bash"
+    volumes:
+      - "${PROJECT_ROOT_PATH:-./}:/var/www"
+    environment:
+      - "COMPOSER_ALLOW_SUPERUSER=1"
+    tty: true
