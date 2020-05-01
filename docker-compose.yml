@@ -5,7 +5,7 @@ services:
     command:
       - bash
       - "-c"
-      - "php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\" && php composer-setup.php --install-dir=bin --filename=composer && bash"
+      - "php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\" && php composer-setup.php --install-dir=bin --filename=composer && apt update && apt install unzip && bash"
     volumes:
       - "${PROJECT_ROOT_PATH:-./}:/var/www"
     environment:
