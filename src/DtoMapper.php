@@ -49,8 +49,8 @@ class DtoMapper
 
     public function __construct()
     {
-        $phpDocExtractor                 = new PhpDocExtractor();
-        $typeExtractors                  = [$phpDocExtractor];
+        $phpDocExtractor    = new PhpDocExtractor();
+        $typeExtractors     = [$phpDocExtractor];
         $this->propertyInfo = new PropertyInfoExtractor([], $typeExtractors, [], [], []);
     }
 
@@ -130,7 +130,7 @@ class DtoMapper
     {
         $type = $property->getType();
         if ($type === null) {
-            CannotMapToDto::becauseNoPhpType($property->getName(), $className);
+            throw CannotMapToDto::becauseNoPhpType($property->getName(), $className);
         }
 
         if ($rawValue === null) {
@@ -155,20 +155,20 @@ class DtoMapper
 
             $docTypes = $this->propertyInfo->getTypes($className, $property->getName());
             if ($docTypes === null) {
-                CannotMapToDto::becausePhpDocIsNotReadable($property->getName(), $className);
+                throw CannotMapToDto::becausePhpDocIsNotReadable($property->getName(), $className);
             }
 
             if (count($docTypes) !== 1) {
-                CannotMapToDto::becausePhpDocIsMultiple($property->getName(), $className);
+                throw CannotMapToDto::becausePhpDocIsMultiple($property->getName(), $className);
             }
 
             if (! $docTypes[0]->isCollection()) {
-                CannotMapToDto::becausePhpDocIsNotAnArray($property->getName(), $className);
+                throw CannotMapToDto::becausePhpDocIsNotAnArray($property->getName(), $className);
             }
 
             $docIterableType = $docTypes[0]->getCollectionValueType();
             if ($docIterableType === null) {
-                CannotMapToDto::becausePhpDocIsCorrupt($property->getName(), $className);
+                throw CannotMapToDto::becausePhpDocIsCorrupt($property->getName(), $className);
             }
 
             $itemClassName = $docIterableType->getClassName()??$docIterableType->getBuiltinType();
