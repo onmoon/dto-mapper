@@ -13,8 +13,10 @@ class TestDto
     /** @var DateTime[] $dateArray */
     private array $dateArray;
     private TestSubDto $subDto;
+    /** @var TestSubDto[] */
+    private array $subDtoArray;
     /** @var null|TestSubDto[] */
-    private ?array $subDtoArray;
+    private ?array $subDtoNullArray;
 
     public function toArray() {
         return [
@@ -23,7 +25,9 @@ class TestDto
             'date' => $this->date,
             'dateArray' => $this->dateArray,
             'subDto' => $this->subDto->toArray(),
-            'subDtoArray' => array_map(fn ($dto) => $dto->toArray(), $this->subDtoArray)
+            'subDtoArray' => array_map(fn ($dto) => $dto->toArray(), $this->subDtoArray),
+            'subDtoNullArray' => $this->subDtoNullArray === null ? null :
+                array_map(fn ($dto) => $dto->toArray(), $this->subDtoNullArray),
         ];
     }
 }

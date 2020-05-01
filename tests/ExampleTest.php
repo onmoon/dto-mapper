@@ -21,9 +21,12 @@ class ExampleTest extends TestCase
             'subDtoArray' => [['int' => 2],['int' => 3]],
         ];
 
+        $result = $source;
+        $result['subDtoNullArray'] = null;
+
         $mapper = new DtoMapper();
         $mapped = $mapper->map($source, TestDto::class);
 
-        self::assertEquals($source, $mapped->toArray());
+        self::assertEquals($result, $mapped->toArray());
     }
 }
