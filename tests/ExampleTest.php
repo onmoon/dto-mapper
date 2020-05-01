@@ -16,7 +16,9 @@ class ExampleTest extends TestCase
             'string' => '123',
             'stringArray' => ['1', '2', '3'],
             'date' => new DateTime(),
-            'dateArray' => [new DateTime(), new DateTime()]
+            'dateArray' => [new DateTime(), new DateTime()],
+            'subDto' => ['int' => 1],
+            'subDtoArray' => [['int' => 2],['int' => 3]],
         ];
 
         $mapper = new DtoMapper();

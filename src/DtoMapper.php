@@ -24,7 +24,6 @@ use Safe\Exceptions\PcreException;
 use Safe\Exceptions\StringsException;
 use Safe\Exceptions\VarException;
 use Symfony\Component\PropertyInfo\Extractor\PhpDocExtractor;
-use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
 use Symfony\Component\PropertyInfo\PropertyInfoExtractor;
 use function array_key_exists;
 use function array_map;
@@ -51,20 +50,8 @@ class DtoMapper
     public function __construct()
     {
         $phpDocExtractor                 = new PhpDocExtractor();
-        $reflectionExtractor             = new ReflectionExtractor();
-        $listExtractors                  = [$reflectionExtractor];
-        $typeExtractors                  = [$reflectionExtractor, $phpDocExtractor];
-        $descriptionExtractors           = [$phpDocExtractor];
-        $accessExtractors                = [$reflectionExtractor];
-        $propertyInitializableExtractors = [$reflectionExtractor];
-
-        $this->propertyInfo = new PropertyInfoExtractor(
-            $listExtractors,
-            $typeExtractors,
-            $descriptionExtractors,
-            $accessExtractors,
-            $propertyInitializableExtractors
-        );
+        $typeExtractors                  = [$phpDocExtractor];
+        $this->propertyInfo = new PropertyInfoExtractor([], $typeExtractors, [], [], []);
     }
 
     /**
