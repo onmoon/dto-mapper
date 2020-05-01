@@ -36,7 +36,6 @@ use function Safe\preg_match;
 use function Safe\settype;
 use function Safe\sort;
 use function Safe\substr;
-use function strlen;
 use function strpos;
 use function strtr;
 
@@ -46,8 +45,6 @@ class DtoMapper
     /**
      * @param array|object $from
      *
-     * @param string $toDTO
-     * @param callable|null $propertyMapper
      * @return mixed
      *
      * @throws CannotMapToDto
@@ -125,14 +122,12 @@ class DtoMapper
                     /** @var string $shortClassName */
                     $shortClassName = $match[1];
 
-                    if (preg_match('#' . preg_quote(NameGenerator::DTO_SUFFIX) . '$#', $shortClassName)) {
+                    if (preg_match('#' . preg_quote('Dto') . '$#', $shortClassName)) {
                         $parentNamespace = $reflectionClass->getNamespaceName();
 
-                        $fullClass = $this->namingStrategy->buildNamespace(
-                            $parentNamespace,
-                            substr($shortClassName, 0, -strlen(NameGenerator::DTO_SUFFIX)),
-                            $shortClassName
-                        );
+                        $fullClass = $parentNamespace . '\\' .
+                            substr($shortClassName, 0, -2) . '\\' .
+                            $shortClassName;
 
                         /** @var mixed $item */
                         foreach ($rawValue as $item) {

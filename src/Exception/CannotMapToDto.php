@@ -6,7 +6,7 @@ namespace OnMoon\DtoMapper\Exception;
 
 use function Safe\sprintf;
 
-class CannotMapToDto extends DtoMapperException
+class CannotMapToDto extends DtoMapperError
 {
     public static function becausePhpDocIsCorrupt(string $name, string $class) : self
     {

@@ -7,7 +7,7 @@ namespace OnMoon\DtoMapper\Exception;
 use Safe\Exceptions\StringsException;
 use function Safe\sprintf;
 
-class NotADateTimeValue extends DtoMapperException
+class NotADateTimeValue extends DtoMapperError
 {
     /** @var mixed $value */
     private $value;

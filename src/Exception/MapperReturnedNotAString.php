@@ -7,7 +7,7 @@ namespace OnMoon\DtoMapper\Exception;
 use Safe\Exceptions\StringsException;
 use function Safe\sprintf;
 
-class MapperReturnedNotAString extends DtoMapperException
+class MapperReturnedNotAString extends DtoMapperError
 {
     /** @var mixed $value */
     private $value;

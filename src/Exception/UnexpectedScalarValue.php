@@ -7,7 +7,7 @@ namespace OnMoon\DtoMapper\Exception;
 use Safe\Exceptions\StringsException;
 use function Safe\sprintf;
 
-class UnexpectedScalarValue extends DtoMapperException
+class UnexpectedScalarValue extends DtoMapperError
 {
     /** @var mixed $value */
     private $value;
