@@ -7,7 +7,8 @@ namespace OnMoon\DtoMapper;
 use ArrayAccess;
 use ArrayObject;
 use BadMethodCallException;
-use DateTime;
+use DateTimeInterface;
+use Exception;
 use OnMoon\DtoMapper\Exception\CannotMapToDto;
 use OnMoon\DtoMapper\Exception\MapperReturnedNotAString;
 use OnMoon\DtoMapper\Exception\NotADateTimeValue;
@@ -16,11 +17,15 @@ use OnMoon\DtoMapper\Exception\UnexpectedNullValue;
 use OnMoon\DtoMapper\Exception\UnexpectedScalarValue;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionType;
+use ReflectionProperty;
+use Safe\DateTime;
 use Safe\Exceptions\ArrayException;
 use Safe\Exceptions\PcreException;
 use Safe\Exceptions\StringsException;
 use Safe\Exceptions\VarException;
+use Symfony\Component\PropertyInfo\Extractor\PhpDocExtractor;
+use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
+use Symfony\Component\PropertyInfo\PropertyInfoExtractor;
 use function array_key_exists;
 use function array_map;
 use function class_exists;
@@ -31,18 +36,37 @@ use function in_array;
 use function is_array;
 use function is_object;
 use function is_string;
+use function is_subclass_of;
 use function method_exists;
-use function preg_quote;
-use function Safe\preg_match;
 use function Safe\settype;
 use function Safe\sort;
 use function Safe\substr;
 use function strpos;
 use function strtr;
 
-/** phpcs:disable SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingTraversableTypeHintSpecification */
 class DtoMapper
 {
+    private PropertyInfoExtractor $propertyInfo;
+
+    public function __construct()
+    {
+        $phpDocExtractor                 = new PhpDocExtractor();
+        $reflectionExtractor             = new ReflectionExtractor();
+        $listExtractors                  = [$reflectionExtractor];
+        $typeExtractors                  = [$reflectionExtractor, $phpDocExtractor];
+        $descriptionExtractors           = [$phpDocExtractor];
+        $accessExtractors                = [$reflectionExtractor];
+        $propertyInitializableExtractors = [$reflectionExtractor];
+
+        $this->propertyInfo = new PropertyInfoExtractor(
+            $listExtractors,
+            $typeExtractors,
+            $descriptionExtractors,
+            $accessExtractors,
+            $propertyInitializableExtractors
+        );
+    }
+
     /**
      * @param array|object $from
      *
@@ -57,7 +81,8 @@ class DtoMapper
      * @throws UnexpectedNullValue
      * @throws UnexpectedScalarValue
      * @throws PcreException
-     * @throws VarException|ArrayException
+     * @throws VarException
+     * @throws ArrayException
      */
     public function map($from, string $toDTO, ?callable $propertyMapper = null)
     {
@@ -72,13 +97,11 @@ class DtoMapper
         foreach ($properties as $property) {
             $nextMapper = null;
             if ($propertyMapper !== null) {
-                /** @var mixed $mappedProperty */
                 $mappedProperty = $propertyMapper($property->getName(), []);
                 if (! is_string($mappedProperty) || empty($mappedProperty)) {
                     throw new MapperReturnedNotAString($property->getName(), $toDTO, $mappedProperty);
                 }
 
-                /** @psalm-suppress MissingClosureReturnType */
                 $nextMapper = static function (string $name, array $context) use ($mappedProperty, $propertyMapper) {
                     $context[] = $mappedProperty;
 
@@ -88,115 +111,133 @@ class DtoMapper
                 $mappedProperty = $property->getName();
             }
 
-            /** @var mixed|null $rawValue */
             $rawValue = $this->getValue($from, $mappedProperty);
-            /** @var ReflectionType $type */
-            $type = $property->getType();
 
-            if ($rawValue === null) {
-                if ($type->allowsNull()) {
-                    continue;
-                }
-
-                throw new UnexpectedNullValue($property->getName(), $toDTO, $from);
-            }
-
-            $typeName = (string) $type;
-            if ($typeName === 'array') {
-                if (! (is_array($rawValue) || $rawValue instanceof ArrayObject)) {
-                    throw new NotAnArrayValue($property->getName(), $toDTO, $rawValue);
-                }
-
-                /** @var mixed[] $value */
-                $value = [];
-                if (count($rawValue) !== 0) {
-                    $phpDoc = $property->getDocComment();
-                    if (! $phpDoc) {
-                        throw CannotMapToDto::becausePhpDocIsCorrupt($property->getName(), $toDTO);
-                    }
-
-                    $regExp = '#@var\s+([^[\s]+)\\[\\](|\\|null)\s+\\$' . preg_quote($property->getName(), '#') . '#';
-                    if (! preg_match($regExp, $phpDoc, $match) || $match === null) {
-                        throw CannotMapToDto::becausePhpDocIsCorrupt($property->getName(), $toDTO);
-                    }
-
-                    /** @var string $shortClassName */
-                    $shortClassName = $match[1];
-
-                    if (preg_match('#' . preg_quote('Dto') . '$#', $shortClassName)) {
-                        $parentNamespace = $reflectionClass->getNamespaceName();
-
-                        $fullClass = $parentNamespace . '\\' .
-                            substr($shortClassName, 0, -2) . '\\' .
-                            $shortClassName;
-
-                        /** @var mixed $item */
-                        foreach ($rawValue as $item) {
-                            if (! is_array($item) && ! is_object($item)) {
-                                throw new UnexpectedScalarValue($property->getName(), $toDTO, $item);
-                            }
-
-                            if (! class_exists($fullClass)) {
-                                throw CannotMapToDto::becauseClassDoesNotExist(
-                                    $fullClass,
-                                    $property->getName(),
-                                    $toDTO
-                                );
-                            }
-
-                            /** @psalm-suppress MixedAssignment */
-                            $value[] = $this->map($item, $fullClass, $nextMapper);
-                        }
-                    } elseif ($shortClassName === 'DateTime') {
-                        /** @var mixed $item */
-                        foreach ($rawValue as $item) {
-                            if ($item instanceof DateTime) {
-                                $value[] = $item;
-                            } elseif (is_string($item)) {
-                                $value[] = new \Safe\DateTime($item);
-                            } else {
-                                throw new NotADateTimeValue($property->getName(), $toDTO, $item);
-                            }
-                        }
-                    } else {
-                        /** @var mixed $item */
-                        foreach ($rawValue as $item) {
-                            /** phpcs:disable Generic.PHP.ForbiddenFunctions.Found */
-                            settype($item, $shortClassName);
-                            /** @psalm-suppress MixedAssignment */
-                            $value[] = $item;
-                        }
-                    }
-                }
-            } elseif ($typeName === 'DateTime') {
-                if ($rawValue instanceof DateTime) {
-                    $value = $rawValue;
-                } elseif (is_string($rawValue)) {
-                    $value = new \Safe\DateTime($rawValue);
-                } else {
-                    throw new NotADateTimeValue($property->getName(), $toDTO, $rawValue);
-                }
-            } elseif ($type->isBuiltin()) {
-                /** phpcs:disable Generic.PHP.ForbiddenFunctions.Found */
-                settype($rawValue, $typeName);
-                /** @var mixed $value */
-                $value = $rawValue;
-            } elseif (class_exists($typeName)) {
-                if (! is_array($rawValue) && ! is_object($rawValue)) {
-                    throw new UnexpectedScalarValue($property->getName(), $toDTO, $rawValue);
-                }
-
-                /** @var mixed $value */
-                $value = $this->map($rawValue, $typeName, $nextMapper);
-            } else {
-                throw CannotMapToDto::becauseUnknownType($typeName, $property->getName(), $toDTO);
-            }
-
+            $value = $this->getPropertyValue($rawValue, $property, $from, $toDTO, $nextMapper);
             $property->setAccessible(true);
             $property->setValue($instance, $value);
         }
 
         return $instance;
+    }
+
+    /**
+     * @param mixed $rawValue
+     * @param mixed $from
+     *
+     * @return mixed
+     *
+     * @throws ArrayException
+     * @throws CannotMapToDto
+     * @throws MapperReturnedNotAString
+     * @throws NotADateTimeValue
+     * @throws NotAnArrayValue
+     * @throws PcreException
+     * @throws ReflectionException
+     * @throws StringsException
+     * @throws UnexpectedNullValue
+     * @throws UnexpectedScalarValue
+     * @throws VarException
+     */
+    private function getPropertyValue($rawValue, ReflectionProperty $property, $from, string $className, ?callable $nextMapper)
+    {
+        $type = $property->getType();
+        if ($type === null) {
+            throw new Exception('Property has no PHP type');
+        }
+
+        if ($rawValue === null) {
+            if ($type->allowsNull()) {
+                return null;
+            }
+
+            throw new UnexpectedNullValue($property->getName(), $className, $from);
+        }
+
+        /** @phpstan-ignore-next-line */
+        $typeName = $type->getName();
+        if ($typeName === 'array') {
+            if (! (is_array($rawValue) || $rawValue instanceof ArrayObject)) {
+                throw new NotAnArrayValue($property->getName(), $className, $rawValue);
+            }
+
+            if (count($rawValue) === 0) {
+                return [];
+            }
+
+            $docTypes = $this->propertyInfo->getTypes($className, $property->getName());
+            if ($docTypes === null) {
+                throw new Exception('No valid phpDoc found for array property');
+            }
+
+            if (count($docTypes) !== 1) {
+                throw new Exception('Too much DocBlock types');
+            }
+
+            if (! $docTypes[0]->isCollection()) {
+                throw new Exception('DocBlock type is not a collection');
+            }
+
+            $docIterableType = $docTypes[0]->getCollectionValueType();
+            if ($docIterableType === null) {
+                throw new Exception('No valid phpDoc found for array property');
+            }
+
+            $itemClassName = $docIterableType->getClassName()??$docIterableType->getBuiltinType();
+            $isBuiltIn     = ($docIterableType->getClassName() === null);
+
+            $result = [];
+            foreach ($rawValue as $v) {
+                $result[] = $this->getNotIterableValue($v, $itemClassName, $isBuiltIn, $property->getName(), $className, $nextMapper);
+            }
+
+            return $result;
+        }
+
+        return $this->getNotIterableValue($rawValue, $typeName, $type->isBuiltin(), $property->getName(), $className, $nextMapper);
+    }
+
+    /**
+     * @param mixed $rawValue
+     *
+     * @return mixed
+     *
+     * @throws ArrayException
+     * @throws CannotMapToDto
+     * @throws MapperReturnedNotAString
+     * @throws NotADateTimeValue
+     * @throws NotAnArrayValue
+     * @throws PcreException
+     * @throws ReflectionException
+     * @throws StringsException
+     * @throws UnexpectedNullValue
+     * @throws UnexpectedScalarValue
+     * @throws VarException
+     */
+    private function getNotIterableValue($rawValue, string $typeName, bool $isBuiltIn, string $propertyName, string $className, ?callable $nextMapper)
+    {
+        if (is_subclass_of($typeName, DateTimeInterface::class)) {
+            if ($rawValue instanceof DateTimeInterface) {
+                $value = new DateTime($rawValue->format('Y-m-d H:i:s.u'), $rawValue->getTimezone());
+            } elseif (is_string($rawValue)) {
+                $value = new $typeName($rawValue);
+            } else {
+                throw new NotADateTimeValue($propertyName, $className, $rawValue);
+            }
+        } elseif ($isBuiltIn) {
+            settype($rawValue, $typeName);
+            $value = $rawValue;
+        } elseif (class_exists($typeName)) {
+            if (! is_array($rawValue) && ! is_object($rawValue)) {
+                throw new UnexpectedScalarValue($propertyName, $className, $rawValue);
+            }
+
+            $value = $this->map($rawValue, $typeName, $nextMapper);
+        } else {
+            throw CannotMapToDto::becauseUnknownType($typeName, $propertyName, $className);
+        }
+
+        return $value;
     }
 
     /**
@@ -223,7 +264,6 @@ class DtoMapper
             return $object->$item;
         }
 
-        /** @var array[] $cache */
         static $cache = [];
 
         $class = get_class($object);
@@ -233,17 +273,14 @@ class DtoMapper
         if (! isset($cache[$class])) {
             $methods = get_class_methods($object);
             sort($methods);
-            $lcMethods = array_map(
+            $lcMethods  = array_map(
                 static function (string $value) {
                     return self::strToLowerEn($value);
                 },
                 $methods
             );
-            /** @var string[] $classCache */
             $classCache = [];
-            /**
-             * @var int $i
-             * @var string $method */
+
             foreach ($methods as $i => $method) {
                 $classCache[$method] = $method;
                 $classCache[$lcName  = $lcMethods[$i]] = $method;
@@ -286,13 +323,10 @@ class DtoMapper
         $magicCall = false;
         $lcItem    = $this->strToLowerEn($item);
         if (isset($cache[$class][$item])) {
-            /** @var string $method */
             $method = $cache[$class][$item];
         } elseif (isset($cache[$class][$lcItem])) {
-            /** @var string $method */
             $method = $cache[$class][$lcItem];
         } elseif (isset($cache[$class]['__call'])) {
-            /** @var string $method */
             $method    = $item;
             $magicCall = true;
         } else {
@@ -304,7 +338,6 @@ class DtoMapper
         }
 
         try {
-            /** @var mixed $ret */
             $ret = $object->$method();
         } catch (BadMethodCallException $e) {
             if ($magicCall) {
