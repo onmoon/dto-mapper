@@ -8,23 +8,55 @@ use function Safe\sprintf;
 
 class CannotMapToDto extends DtoMapperError
 {
-    public static function becausePhpDocIsCorrupt(string $name, string $class) : self
+    public static function becausePhpDocIsNotReadable(string $name, string $class) : self
     {
         return new self(
             sprintf(
-                'PhpDoc is not readable for "%s" in "%s"',
+                'PhpDoc does not define a type for "%s" in "%s"',
                 $name,
                 $class
             )
         );
     }
 
-    public static function becauseUnknownType(string $type, string $name, string $class) : self
+    public static function becausePhpDocIsMultiple(string $name, string $class) : self
     {
         return new self(
             sprintf(
-                'Type "%s" is unknown for "%s" in "%s"',
-                $type,
+                'PhpDoc specifies multiple types for "%s" in "%s"',
+                $name,
+                $class
+            )
+        );
+    }
+
+    public static function becausePhpDocIsNotAnArray(string $name, string $class) : self
+    {
+        return new self(
+            sprintf(
+                'PhpDoc does not define an array for "%s" in "%s"',
+                $name,
+                $class
+            )
+        );
+    }
+
+    public static function becausePhpDocIsCorrupt(string $name, string $class) : self
+    {
+        return new self(
+            sprintf(
+                'PhpDoc does not define an array of a single class for "%s" in "%s"',
+                $name,
+                $class
+            )
+        );
+    }
+
+    public static function becauseNoPhpType(string $name, string $class) : self
+    {
+        return new self(
+            sprintf(
+                'No php type specified for for "%s" in "%s"',
                 $name,
                 $class
             )
