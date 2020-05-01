@@ -17,6 +17,7 @@ use OnMoon\DtoMapper\Exception\UnexpectedScalarValue;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionType;
+use Safe\Exceptions\ArrayException;
 use Safe\Exceptions\PcreException;
 use Safe\Exceptions\StringsException;
 use Safe\Exceptions\VarException;
@@ -56,7 +57,7 @@ class DtoMapper
      * @throws UnexpectedNullValue
      * @throws UnexpectedScalarValue
      * @throws PcreException
-     * @throws VarException
+     * @throws VarException|ArrayException
      */
     public function map($from, string $toDTO, ?callable $propertyMapper = null)
     {
@@ -203,7 +204,7 @@ class DtoMapper
      *
      * @return mixed|null
      *
-     * @throws StringsException
+     * @throws StringsException|ArrayException
      */
     private function getValue($object, string $item)
     {
