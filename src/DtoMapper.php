@@ -130,7 +130,7 @@ class DtoMapper
     {
         $type = $property->getType();
         if ($type === null) {
-            throw new Exception('Property has no PHP type');
+            CannotMapToDto::becauseNoPhpType($property->getName(), $className);
         }
 
         if ($rawValue === null) {
@@ -143,6 +143,7 @@ class DtoMapper
 
         /** @phpstan-ignore-next-line */
         $typeName = $type->getName();
+
         if ($typeName === 'array') {
             if (! (is_array($rawValue) || $rawValue instanceof ArrayObject)) {
                 throw new NotAnArrayValue($property->getName(), $className, $rawValue);
@@ -154,20 +155,20 @@ class DtoMapper
 
             $docTypes = $this->propertyInfo->getTypes($className, $property->getName());
             if ($docTypes === null) {
-                throw new Exception('No valid phpDoc found for array property');
+                CannotMapToDto::becausePhpDocIsNotReadable($property->getName(), $className);
             }
 
             if (count($docTypes) !== 1) {
-                throw new Exception('Too much DocBlock types');
+                CannotMapToDto::becausePhpDocIsMultiple($property->getName(), $className);
             }
 
             if (! $docTypes[0]->isCollection()) {
-                throw new Exception('DocBlock type is not a collection');
+                CannotMapToDto::becausePhpDocIsNotAnArray($property->getName(), $className);
             }
 
             $docIterableType = $docTypes[0]->getCollectionValueType();
             if ($docIterableType === null) {
-                throw new Exception('No valid phpDoc found for array property');
+                CannotMapToDto::becausePhpDocIsCorrupt($property->getName(), $className);
             }
 
             $itemClassName = $docIterableType->getClassName()??$docIterableType->getBuiltinType();
@@ -200,6 +201,7 @@ class DtoMapper
      * @throws UnexpectedNullValue
      * @throws UnexpectedScalarValue
      * @throws VarException
+     * @throws Exception
      */
     private function getNotIterableValue($rawValue, string $typeName, bool $isBuiltIn, string $propertyName, string $className, ?callable $nextMapper)
     {
@@ -221,7 +223,7 @@ class DtoMapper
 
             $value = $this->map($rawValue, $typeName, $nextMapper);
         } else {
-            throw CannotMapToDto::becauseUnknownType($typeName, $propertyName, $className);
+            throw CannotMapToDto::becauseClassDoesNotExist($typeName, $propertyName, $className);
         }
 
         return $value;

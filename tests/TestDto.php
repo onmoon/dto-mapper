@@ -13,8 +13,8 @@ class TestDto
     /** @var DateTime[] $dateArray */
     private array $dateArray;
     private TestSubDto $subDto;
-    /** @var TestSubDto[] */
-    private array $subDtoArray;
+    /** @var null|TestSubDto[] */
+    private ?array $subDtoArray;
 
     public function toArray() {
         return [
