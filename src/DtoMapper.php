@@ -25,6 +25,7 @@ use Safe\Exceptions\StringsException;
 use Safe\Exceptions\VarException;
 use Symfony\Component\PropertyInfo\Extractor\PhpDocExtractor;
 use Symfony\Component\PropertyInfo\PropertyInfoExtractor;
+
 use function array_key_exists;
 use function array_map;
 use function class_exists;
@@ -171,7 +172,7 @@ class DtoMapper
                 throw CannotMapToDto::becausePhpDocIsCorrupt($property->getName(), $className);
             }
 
-            $itemClassName = $docIterableType->getClassName()??$docIterableType->getBuiltinType();
+            $itemClassName = $docIterableType->getClassName() ?? $docIterableType->getBuiltinType();
             $isBuiltIn     = ($docIterableType->getClassName() === null);
 
             $result = [];
@@ -238,9 +239,13 @@ class DtoMapper
      */
     private function getValue($object, string $item)
     {
-        if (((is_array($object) || $object instanceof ArrayObject) &&
-                (isset($object[$item]) || array_key_exists($item, (array) $object)))
-            || ($object instanceof ArrayAccess && isset($object[$item]))
+        if (
+            ((is_array($object) ||
+            $object instanceof ArrayObject) &&
+                (isset($object[$item]) ||
+                array_key_exists($item, (array) $object))) ||
+            ($object instanceof ArrayAccess &&
+            isset($object[$item]))
         ) {
             return $object[$item];
         }
@@ -339,7 +344,7 @@ class DtoMapper
         return $ret;
     }
 
-    private static function strToLowerEn(string $str) : string
+    private static function strToLowerEn(string $str): string
     {
         return strtr($str, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz');
     }
