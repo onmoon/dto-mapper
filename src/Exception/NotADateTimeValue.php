@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OnMoon\DtoMapper\Exception;
 
 use Safe\Exceptions\StringsException;
+
 use function Safe\sprintf;
 
 class NotADateTimeValue extends DtoMapperError

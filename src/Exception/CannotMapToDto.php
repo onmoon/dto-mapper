@@ -8,7 +8,7 @@ use function Safe\sprintf;
 
 class CannotMapToDto extends DtoMapperError
 {
-    public static function becausePhpDocIsNotReadable(string $name, string $class) : self
+    public static function becausePhpDocIsNotReadable(string $name, string $class): self
     {
         return new self(
             sprintf(
@@ -19,7 +19,7 @@ class CannotMapToDto extends DtoMapperError
         );
     }
 
-    public static function becausePhpDocIsMultiple(string $name, string $class) : self
+    public static function becausePhpDocIsMultiple(string $name, string $class): self
     {
         return new self(
             sprintf(
@@ -30,7 +30,7 @@ class CannotMapToDto extends DtoMapperError
         );
     }
 
-    public static function becausePhpDocIsNotAnArray(string $name, string $class) : self
+    public static function becausePhpDocIsNotAnArray(string $name, string $class): self
     {
         return new self(
             sprintf(
@@ -41,7 +41,7 @@ class CannotMapToDto extends DtoMapperError
         );
     }
 
-    public static function becausePhpDocIsCorrupt(string $name, string $class) : self
+    public static function becausePhpDocIsCorrupt(string $name, string $class): self
     {
         return new self(
             sprintf(
@@ -52,7 +52,7 @@ class CannotMapToDto extends DtoMapperError
         );
     }
 
-    public static function becauseNoPhpType(string $name, string $class) : self
+    public static function becauseNoPhpType(string $name, string $class): self
     {
         return new self(
             sprintf(
@@ -63,7 +63,7 @@ class CannotMapToDto extends DtoMapperError
         );
     }
 
-    public static function becauseClassDoesNotExist(string $childClass, string $name, string $class) : self
+    public static function becauseClassDoesNotExist(string $childClass, string $name, string $class): self
     {
         return new self(
             sprintf(
@@ -75,7 +75,7 @@ class CannotMapToDto extends DtoMapperError
         );
     }
 
-    public static function becauseRootClassDoesNotExist(string $class) : self
+    public static function becauseRootClassDoesNotExist(string $class): self
     {
         return new self(
             sprintf(
