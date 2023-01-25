@@ -13,7 +13,7 @@
     "require": {
         "php": "^7.4|^8.0",
         "thecodingmachine/safe": "^1.1",
-        "symfony/property-info": "^5.0",
+        "symfony/property-info": "^5.0|^6.0",
         "phpdocumentor/reflection-docblock": "^5.0"
     },
     "autoload": {
